@@ -1,3 +1,5 @@
+using Library.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -12,6 +14,8 @@ builder.Services.AddCors((options) =>
         corsBuilder.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
+
+builder.Services.AddScoped<IBookRepository, BookRepository>();
 
 var app = builder.Build();
 

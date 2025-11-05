@@ -22,9 +22,4 @@ public class DataContext : DbContext
             optionsBuilder => optionsBuilder.EnableRetryOnFailure());
         }
     }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Book>().ToTable("Books").HasKey(u => u.BookId);
-    }
 }
