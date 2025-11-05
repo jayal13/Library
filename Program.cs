@@ -9,7 +9,7 @@ builder.Services.AddCors((options) =>
     options.AddPolicy("DevCors", (corsBuilder) =>
     {
         //Allowing React
-        corsBuilder.WithOrigins("http:/localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        corsBuilder.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 
