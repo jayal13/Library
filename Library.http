@@ -1,6 +1,19 @@
 @Library_HostAddress = http://localhost:5073
 
-GET {{Library_HostAddress}}/User/test/test
+GET {{Library_HostAddress}}/Library/GetBooks
 Accept: application/json
+
+GET {{Library_HostAddress}}/Library/GetBook/1
+Accept: application/json
+
+GET {{Library_HostAddress}}/Library/AddBook
+Content-Type: application/json
+{Title = "Hobbit", Author = "Tolkien", Pages = 300, Availible = true}
+
+GET {{Library_HostAddress}}/Library/EditBook
+Content-Type: application/json
+{ BookId = 3, Title = "Hobbit", Author = "Tolkien", Pages = 250, Availible = true }
+
+GET {{Library_HostAddress}}/Library/DeleteBook/3
 
 ###
