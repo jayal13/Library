@@ -20,7 +20,6 @@ namespace Tests.Controllers
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            // Siempre usar InMemory para los tests
             optionsBuilder.UseInMemoryDatabase(_dbName);
         }
     }
@@ -32,19 +31,55 @@ namespace Tests.Controllers
         public LibraryControllerTests()
         {
             var config = new ConfigurationBuilder().AddInMemoryCollection().Build();
+
             _context = new TestDataContext(config, Guid.NewGuid().ToString());
-            
             _context.Database.EnsureCreated();
             _context.Books.AddRange(
-                new Book { BookId = 1, Title = "LOTR", Author = "Tolkien", Pages = 500, Availible = true },
-                new Book { BookId = 2, Title = "Hobbit", Author = "Tolkien", Pages = 300, Availible = true }
+                new Book { Id = 1, Title = "LOTR",   Author = "Tolkien", Pages = 500, Availible = true },
+                new Book { Id = 2, Title = "Hobbit", Author = "Tolkien", Pages = 300, Availible = true }
             );
             _context.SaveChanges();
 
-            _controller = new LibraryController(config);
-            typeof(LibraryController)
-                .GetField("_connection", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                .SetValue(_controller, _context);
+            var mockRepo = new Moq.Mock<IBookRepository>(Moq.MockBehavior.Strict);
+
+            mockRepo
+                .Setup(r => r.GetAll<Book>())
+                .Returns(() => _context.Books.ToList());
+
+            mockRepo
+                .Setup(r => r.GetOne<Book>(Moq.It.IsAny<int>()))
+                .Returns<int>(id =>
+                {
+                    var entity = _context.Books.Find(id);
+                    if (entity is null) throw new Exception($"{id} not found"); 
+                    return entity;
+                });
+
+            mockRepo
+                .Setup(r => r.AddOne<Book>(Moq.It.IsAny<Book>()))
+                .Returns<Book>(b =>
+                {
+                    _context.Add(b);
+                    return _context.SaveChanges(); 
+                });
+
+            mockRepo
+                .Setup(r => r.EditOne(Moq.It.IsAny<Book>(), Moq.It.IsAny<Action<Book>>()))
+                .Returns<Book, Action<Book>>((entity, mutate) =>
+                {
+                    mutate(entity);
+                    return _context.SaveChanges();
+                });
+
+            mockRepo
+                .Setup(r => r.DeleteOne(Moq.It.IsAny<Book>()))
+                .Returns<Book>(entity =>
+                {
+                    _context.Remove(entity);
+                    return _context.SaveChanges();
+                });
+
+            _controller = new LibraryController(mockRepo.Object);
         }
 
         [Fact]
@@ -82,7 +117,7 @@ namespace Tests.Controllers
         [Fact]
         public void EditBook()
         {
-            var updated = new Book { BookId = 1, Title = "LOTR", Author = "Tolkien", Pages = 550, Availible = true };
+            var updated = new Book { Id = 1, Title = "LOTR", Author = "Tolkien", Pages = 550, Availible = true };
 
             var result = _controller.EditBook(updated) as OkObjectResult;
 

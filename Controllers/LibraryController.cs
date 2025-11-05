@@ -1,4 +1,5 @@
 using System.Data;
+using AutoMapper;
 using Library.Data;
 using Library.Dtos;
 using Library.Models;
@@ -8,75 +9,54 @@ namespace Library.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class LibraryController(IConfiguration config) : ControllerBase
+public class LibraryController(IBookRepository bookRepository) : ControllerBase
 {
-    readonly DataContext _connection = new(config);
+    readonly IBookRepository _bookRepo = bookRepository;
+    private readonly Mapper _mapper = new(new MapperConfiguration(cfg =>
+    {
+        cfg.CreateMap<AddBookDto, Book>();
+    }));
 
     [HttpGet("GetBooks/{bookId}")]
     public Book GetBook(int bookId)
     {
-        Book? book = _connection.Books.Where(u => u.BookId == bookId).FirstOrDefault<Book>() 
-        ?? throw new Exception($"Book {bookId} not found");
-        return book;
+        return _bookRepo.GetOne<Book>(bookId);
     }
 
     [HttpGet("GetBooks")]
     public IEnumerable<Book> GetBooks()
     {
-        IEnumerable<Book> books = [.. _connection.Books];
-        return books;
+        return _bookRepo.GetAll<Book>();
     }
 
     [HttpPut("EditBook")]
     public IActionResult EditBook(Book newBook)
     {
-        Book? book = _connection.Books.Where(u => u.BookId == newBook.BookId).FirstOrDefault<Book>()
-        ?? throw new Exception($"Book {newBook.BookId} not found");
+        Book? book = _bookRepo.GetOne<Book>(newBook.Id);
 
-        book.Title = newBook.Title;
-        book.Author = newBook.Author;
-        book.Pages = newBook.Pages;
-        book.Availible = newBook.Availible;
-        
-        int rows = _connection.SaveChanges();
-        if ( rows == 0)
+        int rows = _bookRepo.EditOne<Book>(book, book =>
         {
-            throw new Exception("Failed to Update book" + book.BookId);
-        }
+            book.Title = newBook.Title;
+            book.Author = newBook.Author;
+            book.Pages = newBook.Pages;
+            book.Availible = newBook.Availible;
+        });
         return Ok("Updated " + rows + " rows");
     }
 
     [HttpPost("AddBook")]
     public IActionResult AddBook(AddBookDto newBook)
     {
-        Book book = new()
-        {
-            Title = newBook.Title,
-            Author = newBook.Author,
-            Pages = newBook.Pages,
-            Availible = newBook.Availible
-        };
-        _connection.Add(book);
-        int rows = _connection.SaveChanges();
-        if ( rows == 0)
-        {
-            throw new Exception("Failed to Update book" + book.BookId);
-        }
+        Book book = _mapper.Map<Book>(newBook);
+        int rows = _bookRepo.AddOne<Book>(book);
         return Ok("Updated " + rows + " rows");
     }
 
     [HttpDelete("DeleteBook/{bookId}")]
     public IActionResult DeleteBook(int bookId)
     {
-        Book? book = _connection.Books.Where(u => u.BookId == bookId).FirstOrDefault<Book>()
-        ?? throw new Exception($"Book {bookId} not found");
-        _connection.Remove(book);
-
-        int rows = _connection.SaveChanges();
-        if ( rows == 0)
-        {
-            throw new Exception("Failed to Update book" + book.BookId);
-        }
+        Book? book = _bookRepo.GetOne<Book>(bookId);
+        int rows = _bookRepo.DeleteOne<Book>(book);
         return Ok("Updated " + rows + " rows");
     }
 }   
