@@ -8,5 +8,9 @@ namespace Library.Dtos
         public string? Author { get; set; }
         public int Pages { get; set; }
         public bool Availible { get; set; }
+        public AddBookDto(){
+            Title ??= "";
+            Author ??= "";
+        }
     }
 }

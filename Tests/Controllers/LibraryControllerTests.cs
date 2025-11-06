@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using Library.Dtos;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq.Expressions;
 
 namespace Tests.Controllers
 {
@@ -40,18 +41,18 @@ namespace Tests.Controllers
             );
             _context.SaveChanges();
 
-            var mockRepo = new Moq.Mock<IBookRepository>(Moq.MockBehavior.Strict);
+            var mockRepo = new Moq.Mock<ILibraryRepository>(Moq.MockBehavior.Strict);
 
             mockRepo
                 .Setup(r => r.GetAll<Book>())
                 .Returns(() => _context.Books.ToList());
 
             mockRepo
-                .Setup(r => r.GetOne<Book>(Moq.It.IsAny<int>()))
-                .Returns<int>(id =>
+                .Setup(r => r.GetOneBy<Book>(It.IsAny<Expression<Func<Book, bool>>>()))
+                .Returns((Expression<Func<Book, bool>> predicate) =>
                 {
-                    var entity = _context.Books.Find(id);
-                    if (entity is null) throw new Exception($"{id} not found"); 
+                    var entity = _context.Books.FirstOrDefault(predicate);
+                    if (entity is null) throw new Exception("not found");
                     return entity;
                 });
 
@@ -92,14 +93,14 @@ namespace Tests.Controllers
         [Fact]
         public void GetBook()
         {
-            var result = _controller.GetBook(1);
+            var result = _controller.GetBookById(1);
             Assert.Equal("LOTR", result.Title);
         }
 
         [Fact]
-        public void GetBook_Failed()
+        public void GetBookById_Failed()
         {
-            Assert.Throws<Exception>(() => _controller.GetBook(99));
+            Assert.Throws<Exception>(() => _controller.GetBookById(99));
         }
 
         [Fact]
