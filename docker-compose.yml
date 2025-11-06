@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=AdminPassword13
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    restart: unless-stopped
+
+  db-seed:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: db-seed
+    depends_on:
+      - sqlserver
+    volumes:
+      - ./sql:/sql:ro
+    entrypoint: >
+      /bin/bash -lc "
+      until /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P AdminPassword13 -Q 'SELECT 1' >/dev/null 2>&1;
+      do echo 'Waiting SQL Server...'; sleep 3; done;
+      echo 'Seeding data...';
+      /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P AdminPassword13 -i /sql/seed.sql;
+      echo 'Seed completed';
+      "
+
+volumes:
+  mssql-data:
