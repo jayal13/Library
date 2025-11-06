@@ -1,23 +1,34 @@
+using System.Linq.Expressions;
+using System.Reflection.Metadata.Ecma335;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace Library.Data
 {
-    public class BookRepository : IBookRepository
+    public class LibraryRepository : ILibraryRepository
     {
         private readonly DataContext _connection;
 
-        public BookRepository(IConfiguration config)
+        public LibraryRepository(IConfiguration config)
         {
             _connection = new DataContext(config);
         }
 
-        public T GetOne<T>(int id) where T : class
+        public TEntity? GetOneBy<TEntity>(Expression<Func<TEntity, bool>> predicate)
+            where TEntity : class
         {
-            T? resp = _connection.Set<T>().Find(id)
-            ?? throw new Exception($"{id} not found");
-            return resp;
+            return _connection.Set<TEntity>().FirstOrDefault(predicate);
         }
+
+        public IEnumerable<TEntity> GetManyBy<TEntity>(Expression<Func<TEntity, bool>> predicate)
+            where TEntity : class
+        {
+            return [.. _connection.Set<TEntity>()
+                            .AsNoTracking()
+                            .Where(predicate)];
+        }
+
 
         public IEnumerable<T> GetAll<T>() where T : class
         {
@@ -27,7 +38,7 @@ namespace Library.Data
 
         public int EditOne<T>(T type, Action<T> mutate)
         {
-            mutate(type);              // <- aquí cambias campos
+            mutate(type);              
             int rows = _connection.SaveChanges();
             if (rows == 0)
             {
